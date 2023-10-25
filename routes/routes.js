@@ -11,7 +11,7 @@ router.get("/", (req, res) => {
   res.send("API is running");
 });
 
-router.post("/api/carousel",carouselController);
+router.get("/api/carousel",carouselController);
 
 
 module.exports = {
