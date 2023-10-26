@@ -17,7 +17,7 @@ app.use(bodyParser.json({
 //Cors Configuration - Start
 const corsOptions = {
   origin: "*",
-  methods: "GET",
+  methods: "GET,POST",
   allowedHeaders: "*",
   preflightContinue: false
 };
