@@ -38,6 +38,8 @@ app.options('*', cors());
 
 app.use(cors(corsOptions));
 
+app.use('/images', express.static('images'));
+
 // Apply the rate limiting middleware to all requests
 app.use(limiter);
 
