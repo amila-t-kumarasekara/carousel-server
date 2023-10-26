@@ -1,7 +1,21 @@
 const { MongoClient } = require('mongodb');
+const { GetObjectCommand } = require("@aws-sdk/client-s3");
+const s3 = require("../config/aws");
 
 // Create a MongoDB client
 const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
+
+
+// Define a utility function to convert a stream to a buffer
+function streamToBuffer(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on('data', (chunk) => chunks.push(chunk));
+    stream.on('end', () => resolve(Buffer.concat(chunks)));
+    stream.on('error', reject);
+  });
+}
+
 
 exports.carouselController = async (req, res) => {
     const { slides } = req.query;
@@ -18,10 +32,24 @@ exports.carouselController = async (req, res) => {
         // Retrieve carousel data from MongoDB
         const carouselData = await collection.find().limit(Number(slides)).toArray();
         // Map the data to include the image URL
-        const formattedCarouselData = carouselData.map(item => ({
-            title: item.title,
-            subTitle: item.subTitle,
-            image: `${process.env.SERVER_URL}/${item.imageLocation}`, // Assuming images are stored in the 'images' folder
+        const formattedCarouselData = await Promise.all(carouselData.map(async item => {
+            // Use the key or path to the image in your S3 bucket
+            const key = item.imageLocation; 
+
+            // Fetch the image data from S3 using the S3Client
+            const params = {
+                Bucket: process.env.AWS_S3_BUCKET_NAME, // Replace with your S3 bucket name
+                Key: key,
+            };
+            const { Body } = await s3.send(new GetObjectCommand(params));
+           // Convert the stream to a buffer
+            const imageData = await streamToBuffer(Body);
+
+            return {
+                title: item.title,
+                subTitle: item.subTitle,
+                image: imageData.toString('base64'), // Convert to base64, // Include image data
+            };
         }));
 
         return res.json({ slides: formattedCarouselData });
@@ -36,7 +64,7 @@ exports.carouselController = async (req, res) => {
 
 exports.storeCarouselController = async (req, res) => {
     const { title, subTitle } = req.body;
-    const imageLocation = `images/${req.file.filename}`;
+    const imageLocation = req.file.key;
 
     try {
       const db = client.db(process.env.DATABASE_NAME);
