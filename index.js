@@ -22,13 +22,6 @@ const corsOptions = {
   preflightContinue: false
 };
 
-const limiter = rateLimit({
-	windowMs: 15 * 60 * 1000, // 60 minutes
-	max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
-	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
-
 app.use((req, res, next) => {
   req.ip = req.body.ipAddress; // Extract the client's IP address from the request headers
   next();
@@ -39,9 +32,6 @@ app.options('*', cors());
 app.use(cors(corsOptions));
 
 app.use('/images', express.static('images'));
-
-// Apply the rate limiting middleware to all requests
-app.use(limiter);
 
 app.use(routes.routes);
 
